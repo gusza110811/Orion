@@ -49,22 +49,6 @@ function Module.Node:getChildren()
     return self.Children
 end
 
--- custom getter
-function Module.Node:__index(key)
-    if key == "name" then
-        return rawget(self, "name")
-    elseif key == "parent" then
-        return rawget(self, "parent")
-    end
-    local owned = rawget(self, key)
-    local inClass = rawget(Module.Node, key)
-    if owned then
-        return owned
-    elseif inClass then
-        return inClass
-    end
-end
-
 -- custom setter
 function Module.Node:__newindex(key, value)
     if self._readOnly then
