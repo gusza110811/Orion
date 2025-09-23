@@ -32,8 +32,7 @@ function Module.readOnly(t)
 end
 function Module.tableToString(tbl, indent)
     indent = indent or 0
-    local stopKeys = {Parent=true} -- list of keys we don't recurse into
-    local skipKeys = {Name=true}
+    local stopKeys = {parent=true} -- list of keys we don't recurse into
 
     local result = "{\n"
     local spacing = string.rep("  ", indent + 1)
@@ -51,13 +50,11 @@ function Module.tableToString(tbl, indent)
         if type(v) == "table" then
             if stopKeys[k] then
                 -- If the key is in the skip list, use v.Name (if exists) instead of recursing
-                if type(v.Name) == "string" then
-                    value = string.format("%q", v.Name)
+                if type(v.name) == "string" then
+                    value = string.format("%q", v.name)
                 else
                     value = "\"<no name>\""
                 end
-            elseif skipKeys[k] then
-                goto continue
             else
                 -- normal recursion
                 value = Module.tableToString(v, indent + 1)
@@ -69,11 +66,41 @@ function Module.tableToString(tbl, indent)
         end
 
         result = result .. spacing .. key .. " : " .. value .. ",\n"
-        ::continue::
     end
 
     result = result .. string.rep("  ", indent) .. "}"
     return result
+end
+
+function Module.getTree(root,indent)
+    indent = indent or 0
+    local result = string.rep("| ", indent) .. "- " .. root.name
+    local children = root.Children
+    local value
+    local length = #children
+    if length > 0 then
+        result = result .. "\n"
+    end
+    for index, v in ipairs(children) do
+        value = Module.getTree(v,indent+1)
+
+        result = result .. value
+        if index < length then
+            result = result .. "\n"
+        end
+    end
+    return result
+end
+
+function Module.getIndex(table,value)
+    local index = nil
+    for i, v in ipairs(table) do
+        if v == value then
+            index = i
+            break
+        end
+    end
+    return index
 end
 
 return Module

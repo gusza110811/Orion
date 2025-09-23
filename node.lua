@@ -6,76 +6,89 @@ Module.Node.__index = Module.Node
 
 local nodeCounter = 0 -- for auto-naming
 
+-- Create new instance of `Node`
 function Module.Node.new(name,parent)
     local self = setmetatable({}, Module.Node)
-    self.locked = false
+
+    self.Children = {}
+    self.parent = parent
+
+    self._readOnly = {}
+    self.class = "Node"
 
     nodeCounter = nodeCounter + 1
-    self.Name = name or ("Node" .. tostring(nodeCounter))
+    self.name = name or ("Node" .. tostring(nodeCounter))
 
-    self.Parent = parent
-    self.Children = {}
+
+    rawset(self._readOnly,"_readOnly",true)
+    rawset(self._readOnly,"class",true)
+
+    self.__index = self.index
 
     return self
 end
 
+-- Permanently lock this instance
 function Module.Node:lock()
-    self.locked = true
+    rawset(self._readOnly,"name",true)
+    rawset(self._readOnly,"parent",true)
+end
+
+-- Get first child of matching `name`
+function Module.Node:getFirstChild(name)
+    for index, value in ipairs(self.Children) do
+        if value.name == name then
+            return value
+        end
+    end
+    return nil
+end
+
+-- Get all children
+function Module.Node:getChildren()
+    return self.Children
 end
 
 -- custom getter
 function Module.Node:__index(key)
-    if key == "Name" then
-        return rawget(self, "Name")
-    elseif key == "Parent" then
-        return rawget(self, "Parent")
+    if key == "name" then
+        return rawget(self, "name")
+    elseif key == "parent" then
+        return rawget(self, "parent")
     end
-    print(self.Children)
-    if utils.contains(self.Children,key) then
-        return rawget(self.Children, key) -- methods
-    else
-        return rawget(self, key)
+    local owned = rawget(self, key)
+    local inClass = rawget(Module.Node, key)
+    if owned then
+        return owned
+    elseif inClass then
+        return inClass
     end
 end
 
 -- custom setter
 function Module.Node:__newindex(key, value)
+    if self._readOnly then
+        if self._readOnly[key] then error("Attempted to modify a read-only attribute") end
+    end
 
-    if key == "Name" then
-        if self.locked then
-            error("Cannot rename a locked Node")
-        end
-        local oldName = rawget(self, "Name")
-        rawset(self, "Name", value)
+    if key == "name" then
+        rawset(self, "name", value)
 
-        -- if parent exists, update dictionary
-        local parent = rawget(self, "Parent")
-        if parent then
-            parent.Children[value] = self
-            if oldName then
-                parent.Children[oldName] = nil
-            end
-        end
-
-    elseif key == "Parent" then
-        if self.locked then
-            error("Cannot reparent Node")
-        end
-        local oldParent = rawget(self, "Parent")
+    elseif key == "parent" then
+        local oldParent = rawget(self, "parent")
         if oldParent then
-            oldParent.Children[self.Name] = nil
+            oldParent.Children[utils.getIndex(oldParent.Children,self)] = nil
         end
 
-        rawset(self, "Parent", value)
+        rawset(self, "parent", value)
 
         if value then
-            value.Children[self.Name] = self
+            table.insert(value.Children,self)
         end
 
     else
         rawset(self, key, value)
     end
 end
-
 
 return Module
