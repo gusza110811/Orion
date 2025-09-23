@@ -13,4 +13,6 @@ local test = node.Node.new("DummyNode",scene)
 local testdupe = node.Node.new("DummyNode",scene)
 local test2 = node.Node.new("DumNode",scene)
 
+print(utils.tableToString(game))
+
 print(utils.getTree(game))
