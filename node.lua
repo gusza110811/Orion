@@ -9,6 +9,31 @@ local nodeCounter = 0 -- for auto-naming
 -- Create new instance of `Node`
 function Module.Node.new(name,parent)
     local self = setmetatable({}, Module.Node)
+    -- Custom setter
+    self.__newindex = function (key, value)
+        if self._readOnly then
+            if self._readOnly[key] then error("Attempted to modify a read-only attribute") end
+        end
+
+        if key == "name" then
+            rawset(self, "name", value)
+
+        elseif key == "parent" then
+            local oldParent = rawget(self, "parent")
+            if oldParent then
+                table.remove(oldParent.Children,utils.getIndex(oldParent.Children,self))
+            end
+
+            rawset(self, "parent", value)
+
+            if value then
+                table.insert(value.Children,self)
+            end
+
+        else
+            rawset(self, key, value)
+        end
+    end
 
     self.Children = {}
     self.parent = parent
@@ -22,8 +47,6 @@ function Module.Node.new(name,parent)
 
     rawset(self._readOnly,"_readOnly",true)
     rawset(self._readOnly,"class",true)
-
-    self.__index = self.index
 
     return self
 end
@@ -46,33 +69,8 @@ end
 
 -- Get all children
 function Module.Node:getChildren()
-    return self.Children
+    return utils.shallowCopy(self.Children)
 end
 
--- custom setter
-function Module.Node:__newindex(key, value)
-    if self._readOnly then
-        if self._readOnly[key] then error("Attempted to modify a read-only attribute") end
-    end
-
-    if key == "name" then
-        rawset(self, "name", value)
-
-    elseif key == "parent" then
-        local oldParent = rawget(self, "parent")
-        if oldParent then
-            oldParent.Children[utils.getIndex(oldParent.Children,self)] = nil
-        end
-
-        rawset(self, "parent", value)
-
-        if value then
-            table.insert(value.Children,self)
-        end
-
-    else
-        rawset(self, key, value)
-    end
-end
 
 return Module

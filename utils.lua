@@ -24,7 +24,7 @@ function Module.readOnly(t)
     local mt = {     -- Define a metatable for the proxy
         __index = t, -- When a key is accessed on the proxy, look it up in the original table 't'
         __newindex = function(tbl, key, value)
-            error("Attempt to modify a read-only table", 2) -- Raise an error if an attempt is made to set a value
+            error("Attempt to modify a read-only attribute", 2) -- Raise an error if an attempt is made to set a value
         end
     }
     setmetatable(proxy, mt) -- Set the metatable for the proxy table
@@ -101,6 +101,14 @@ function Module.getIndex(table,value)
         end
     end
     return index
+end
+
+function Module.shallowCopy(table)
+    local shallow_copy = {}
+    for k, v in pairs(table) do
+        shallow_copy[k] = v
+    end
+    return shallow_copy
 end
 
 return Module
