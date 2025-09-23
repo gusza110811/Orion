@@ -49,6 +49,20 @@ function Module.Node.new(name,parent)
     rawset(self._readOnly,"_readOnly",true)
     rawset(self._readOnly,"class",true)
 
+    --[[Child proxy shorthand  
+    `Node.c.child.grandchild` is equivalent to `Node:getChildren("child"):getChildren("grandchild")`
+    ]]
+    self.c = setmetatable({}, {
+        __index = function(_, key)
+            for _, child in ipairs(self.Children) do
+                if child.name == key then
+                    return child
+                end
+            end
+            return nil -- or error("No child named " .. key)
+        end
+    })
+
     return self
 end
 
