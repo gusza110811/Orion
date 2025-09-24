@@ -7,32 +7,32 @@ Module.Node = class {
         local obj = {}
         setmetatable(obj,self)
         obj.Children = {}
-        self.parent = nil
-        self.name = "Node"
-        self.class = "Node"
+        obj.parent = nil
+        obj.name = "Node"
+        obj.class = "Node"
+        obj._readOnly = {_readOnly=true,class=true}
+        --[[Child proxy shorthand  
+        `Node.c.child.grandchild` is equivalent to `Node:getChildren("child"):getChildren("grandchild")`
+        ]]
+        obj.c = setmetatable({}, {
+            __index = function(self, key)
+                for _, child in ipairs(self.Children) do
+                    if child.name == key then
+                        return child
+                    end
+                end
+                return nil
+            end
+        })
         return obj
     end,
-    --[[Child proxy shorthand  
-    `Node.c.child.grandchild` is equivalent to `Node:getChildren("child"):getChildren("grandchild")`
-    ]]
-    c = setmetatable({}, {
-        __index = function(self, key)
-            for _, child in ipairs(self.Children) do
-                if child.name == key then
-                    return child
-                end
-            end
-            return nil -- or error("No child named " .. key)
-        end
-    }),
-    _readOnly = {_readOnly=true,class=true},
 
     -- custom setter
     __newindex = function(self, key, value)
         if self._readOnly then
             if self._readOnly[key] then error("Attempted to modify a read-only attribute " .. key) end
         end
-        
+
         if key == "name" then
             rawset(self, "name", value)
 
@@ -43,7 +43,7 @@ Module.Node = class {
             end
 
             rawset(self, "parent", value)
-            
+
             if value then
                 table.insert(value.Children,self)
             end
