@@ -1,59 +1,22 @@
 local Module = {}
 local utils = require("utils")
 
-Module.Node = {}
-Module.Node.__index = Module.Node
-
--- custom setter
-Module.Node.__newindex = function(self, key, value)
-    if self._readOnly then
-        if self._readOnly[key] then error("Attempted to modify a read-only attribute") end
-    end
-
-    if key == "name" then
-        rawset(self, "name", value)
-
-    elseif key == "parent" then
-        local oldParent = rawget(self, "parent")
-        if oldParent then
-            oldParent.Children[utils.getIndex(oldParent.Children,self)] = nil
-        end
-
-        rawset(self, "parent", value)
-
-        if value then
-            table.insert(value.Children,self)
-        end
-
-    else
-        rawset(self, key, value)
-    end
-end
-
-local nodeCounter = 0 -- for auto-naming
-
--- Create new instance of `Node`
-function Module.Node.new(name,parent)
-    local self = setmetatable({}, Module.Node)
-
-    self.Children = {}
-    self.parent = parent
-
-    self._readOnly = {}
-    self.class = "Node"
-
-    nodeCounter = nodeCounter + 1
-    self.name = name or ("Node" .. tostring(nodeCounter))
-
-
-    rawset(self._readOnly,"_readOnly",true)
-    rawset(self._readOnly,"class",true)
-
+---@type Node
+Module.Node = class {
+    new = function (self)
+        local obj = {}
+        setmetatable(obj,self)
+        obj.Children = {}
+        self.parent = nil
+        self.name = "Node"
+        self.class = "Node"
+        return obj
+    end,
     --[[Child proxy shorthand  
     `Node.c.child.grandchild` is equivalent to `Node:getChildren("child"):getChildren("grandchild")`
     ]]
-    self.c = setmetatable({}, {
-        __index = function(_, key)
+    c = setmetatable({}, {
+        __index = function(self, key)
             for _, child in ipairs(self.Children) do
                 if child.name == key then
                     return child
@@ -61,32 +24,61 @@ function Module.Node.new(name,parent)
             end
             return nil -- or error("No child named " .. key)
         end
-    })
+    }),
+    _readOnly = {_readOnly=true,class=true},
 
-    return self
-end
-
--- Permanently lock this instance
-function Module.Node:lock()
-    rawset(self._readOnly,"name",true)
-    rawset(self._readOnly,"parent",true)
-end
-
--- Get first child of matching `name`
-function Module.Node:getFirstChild(name)
-    for index, value in ipairs(self.Children) do
-        if value.name == name then
-            return value
+    -- custom setter
+    __newindex = function(self, key, value)
+        if self._readOnly then
+            if self._readOnly[key] then error("Attempted to modify a read-only attribute " .. key) end
         end
+        
+        if key == "name" then
+            rawset(self, "name", value)
+
+        elseif key == "parent" then
+            local oldParent = rawget(self, "parent")
+            if oldParent then
+                oldParent.Children[utils.getIndex(oldParent.Children,self)] = nil
+            end
+
+            rawset(self, "parent", value)
+            
+            if value then
+                table.insert(value.Children,self)
+            end
+
+        else
+            rawset(self, key, value)
+        end
+    end,
+
+    -- Permanently lock this instance
+    lock = function(self)
+        rawset(self._readOnly,"name",true)
+        rawset(self._readOnly,"parent",true)
+    end,
+
+    -- Get first child of matching `name`
+    getFirstChild = function(self,name)
+        for index, value in ipairs(self.Children) do
+            if value.name == name then
+                return value
+            end
+        end
+        return nil
+    end,
+
+    -- Get all children
+    getChildren = function(self)
+        return utils.shallowCopy(self.Children)
+    end,
+
+    -- Quickly configure the node
+    config = function (self, configs)
+        utils.mergeInplace(self,configs)
     end
-    return nil
-end
-
--- Get all children
-function Module.Node:getChildren()
-    return utils.shallowCopy(self.Children)
-end
-
+}
 
 
 return Module
