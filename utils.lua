@@ -116,8 +116,11 @@ end
 function Module.mergeInplace(mergee,merger,ignore)
     ignore = ignore or {}
     for k, v in pairs(merger) do
-        mergee[k] = v
+        if not ignore[k] then
+            mergee[k] = v
+        end
     end
+    return mergee
 end
 
 -- create a shallow copy of a table
@@ -129,31 +132,35 @@ function Module.shallowCopy(table)
     return shallow_copy
 end
 
----@generic T
----@param class T
----@return T
-local function inherit(self, class)
-    class.__index = class
+-- create a class from a table literal, optionally specifying a base class
+---@param attrs table
+---@param base? table
+---@return Class
+function class(attrs, base)
+    local cls = attrs or {}
+    cls.__index = cls
+    
+    if base then
+        cls.super = base
+        setmetatable(cls, { __index = base })
+    end
 
-    -- Add constructor if none exists
-    if not class.new then
-        function class:new()
-            return setmetatable({}, self)
+    -- default constructor if missing
+    if not cls.new then
+        function cls:new()
+            return setmetatable({}, cls)
         end
     end
 
-    -- Inherit from this class
-    class.inherit = inherit
+    -- Inheritance method
+    ---@param subAttrs table
+    ---@return Class
+    function cls:inherit(subAttrs)
+        return class(subAttrs, self)
+    end
 
-    return class
+    return cls
 end
 
--- Shorthand for creating class
----@generic T
----@param class T
----@return T
-function class(class)
-    return inherit({},class)
-end
 
 return Module

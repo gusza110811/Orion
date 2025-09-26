@@ -29,17 +29,13 @@ test:config {
     name = "Dummy",
     parent = scene
 }
-local testdupe = node.Node:new()
-testdupe:config {
-    name = "Dummy",
-    parent = scene
-}
-local test2 = node.Node:new()
-test2:config {
-    name = "Dumb",
-    parent = scene
+local testdupe = test:clone()
+local testscript = node.Script:new()
+testscript:config {
+    parent = scene,
+    script = "print('meow')"
 }
 
-print(utils.tableToString(game:getChildren()))
+print(utils.tableToString(game))
 
 print(utils.getTree(game))

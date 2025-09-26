@@ -76,9 +76,46 @@ Module.Node = class {
 
     -- Quickly configure the node
     config = function (self, configs)
-        utils.mergeInplace(self,configs)
+        return utils.mergeInplace(self,configs)
+    end,
+
+    clone = function (self)
+        local obj = Module[self.class]:new()
+        obj:config(self)
+        if self.Children then
+            for index, value in ipairs(self.Children) do
+                value:clone()
+                value.parent = obj
+            end
+        end
+
+        return obj
     end
 }
 
+---@type Script
+Module.Script = Module.Node:inherit {}
+function Module.Script:new()
+    local obj = self.super:new()
+    obj.class = "Script"
+    obj.name = "Script"
+    obj.source = ""
+    obj.script = ""
+    return obj
+end
+
+function Module.Script:__newindex(key,value)
+    if key == "script" then
+        rawset(self,"script",value)
+        rawset(self,"source",nil)
+    elseif key == "source" then
+        rawset(self,"source",value)
+        local script = io.open(value,"r"):read("a")
+        rawset(self,"script",script)
+
+    else
+        return self.super:__newindex(key,value)
+    end
+end
 
 return Module
